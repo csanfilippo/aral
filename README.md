@@ -26,14 +26,12 @@ Then, add the dependency to your common source set's dependencies.
 commonMain {
     dependencies {
         // ...
-        implementation("it.calogerosanfilippo.aral:aral:<latest-version>")
+        implementation("it.calogerosanfilippos:aral:<latest-version>")
     }
 }
 ```
 
 ## Usage
-
-**aral** uses [Coroutines](https://kotlinlang.org/docs/coroutines-overview.html) for all the asynchronous work.
 
 ### Creating an XMLParser instance
 
