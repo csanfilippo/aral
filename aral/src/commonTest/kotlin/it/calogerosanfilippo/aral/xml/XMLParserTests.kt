@@ -10,11 +10,6 @@ import kotlin.test.fail
 class XMLParserTests  {
 
     @Test
-    fun tet() {
-        assertEquals(2,2)
-    }
-
-    @Test
     fun testEmptyString() = runTest {
 
         val parser = XMLParserFactory.getParser()
