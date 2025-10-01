@@ -1,6 +1,6 @@
 # aral
 
-**aral** is a Kotlin Multiplatform library for parsing XML. It supports Android and iOS. More platform will come.
+**aral** is a Kotlin Multiplatform library for parsing XML. It supports Android, iOS, macOS, watchOS and tvOS. More platform will come.
 
 ## Table of Contents
 
@@ -26,7 +26,7 @@ Then, add the dependency to your common source set's dependencies.
 commonMain {
     dependencies {
         // ...
-        implementation("it.calogerosanfilippos:aral:<latest-version>")
+        implementation("it.calogerosanfilippos:aral:0.2.0")
     }
 }
 ```

@@ -1,6 +1,6 @@
 package it.calogerosanfilippo.aral.xml
 
-import com.rickclephas.kmp.nserrorkt.asThrowable
+import kotlinx.cinterop.BetaInteropApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.channels.ProducerScope
@@ -15,8 +15,17 @@ import platform.Foundation.NSString
 import platform.Foundation.NSUTF8StringEncoding
 import platform.Foundation.NSXMLParser
 import platform.Foundation.NSXMLParserDelegateProtocol
+import platform.Foundation.create
 import platform.Foundation.dataUsingEncoding
 import platform.darwin.NSObject
+
+internal data class NSXMLParsingException(
+    val nsError: NSError,
+    val failureReason: String?,
+    val recoverySuggestion: String?,
+    override val message: String?,
+) : Exception()
+
 
 private fun Map<Any?, *>.toListOfStringPairs(): List<Pair<String, String>> =
     map {
@@ -32,8 +41,18 @@ private class ParserDelegate(private val producerScope: ProducerScope<XMLParserE
     NSXMLParserDelegateProtocol {
 
     override fun parser(parser: NSXMLParser, parseErrorOccurred: NSError) {
+
+        val nSXMLParsingException = NSXMLParsingException(
+            nsError = parseErrorOccurred,
+            message = parseErrorOccurred.localizedDescription,
+            failureReason = parseErrorOccurred.localizedFailureReason,
+            recoverySuggestion = parseErrorOccurred.localizedRecoverySuggestion,
+        )
+
+        parser.abortParsing()
+
         producerScope.launch {
-            producerScope.send(XMLParserEvent.Error(Exception(parseErrorOccurred.asThrowable())))
+            producerScope.send(XMLParserEvent.Error(nSXMLParsingException))
         }
     }
 
@@ -89,12 +108,15 @@ private class ParserDelegate(private val producerScope: ProducerScope<XMLParserE
 }
 
 internal class IOSXMLParser : XMLParser() {
+    @OptIn(BetaInteropApi::class)
     override fun parse(string: String): Flow<XMLParserEvent> {
-        if (string.isBlank()) {
+        val cleanXml = string.trim()
+
+        if (cleanXml.isBlank()) {
             return flowOf(XMLParserEvent.Error(EmptyDocumentException()))
         }
 
-        val stringAsData = (string as NSString).dataUsingEncoding(NSUTF8StringEncoding) ?: NSData()
+        val stringAsData = NSString.create(string = cleanXml).dataUsingEncoding(NSUTF8StringEncoding) ?: NSData()
 
         return channelFlow {
             withContext(Dispatchers.IO) {
