@@ -1,4 +1,5 @@
 # aral
+![Maven Central Version](https://img.shields.io/maven-central/v/it.calogerosanfilippo/aral)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.2.20-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-blue.svg?style=flat)](https://www.apache.org/licenses/LICENSE-2.0)
 
