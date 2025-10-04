@@ -19,6 +19,14 @@ import platform.Foundation.create
 import platform.Foundation.dataUsingEncoding
 import platform.darwin.NSObject
 
+/**
+ * Exception thrown when an error occurs during XML parsing on Apple platforms.
+ *
+ * @property nsError The underlying [NSError] from the parser.
+ * @property failureReason A string containing the localized description of the reason for the error.
+ * @property recoverySuggestion A string containing the localized description of how to recover from the error.
+ * @property message The detailed error message.
+ */
 internal data class NSXMLParsingException(
     val nsError: NSError,
     val failureReason: String?,
@@ -36,6 +44,11 @@ private fun Map<Any?, *>.toListOfStringPairs(): List<Pair<String, String>> =
         }
     }.filterNotNull()
 
+/**
+ * A delegate for [NSXMLParser] that converts parser events into [XMLParserEvent]s and sends them to a [ProducerScope].
+ *
+ * @param producerScope The scope to which the parser events are sent.
+ */
 private class ParserDelegate(private val producerScope: ProducerScope<XMLParserEvent>) :
     NSObject(),
     NSXMLParserDelegateProtocol {
@@ -107,6 +120,9 @@ private class ParserDelegate(private val producerScope: ProducerScope<XMLParserE
     }
 }
 
+/**
+ * An implementation of [XMLParser] for Apple platforms that uses [NSXMLParser].
+ */
 internal class IOSXMLParser : XMLParser() {
     @OptIn(BetaInteropApi::class)
     override fun parse(string: String): Flow<XMLParserEvent> {
@@ -129,6 +145,9 @@ internal class IOSXMLParser : XMLParser() {
     }
 }
 
+/**
+ * Returns an instance of [IOSXMLParser] for use on Apple platforms.
+ */
 internal actual fun internalGetParser(): XMLParser {
     return IOSXMLParser()
 }

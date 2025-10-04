@@ -14,10 +14,29 @@ import org.xml.sax.helpers.DefaultHandler
 import java.io.StringReader
 import javax.xml.parsers.SAXParserFactory
 
+/**
+ * This file provides the Android-specific implementation for a cross-platform XML parsing library.
+ * It utilizes the Simple API for XML (SAX) parser available in the Java Development Kit (JDK)
+ * to process XML documents.
+ */
+
+/**
+ * Returns an instance of [AndroidXMLParser] for use on the Android platform.
+ * This is the `actual` implementation of an `expect` function, which serves as the factory for
+ * creating an `AndroidXMLParser` instance.
+ */
 internal actual fun internalGetParser(): XMLParser {
     return AndroidXMLParser()
 }
 
+/**
+ * A private `DefaultHandler` subclass that listens for events from the SAX parser.
+ * It overrides methods to handle various parsing events, such as the start and end of documents
+ * and elements, character data, and errors. It then converts these SAX events into the library's
+ * common [XMLParserEvent]s and emits them to the `Flow`.
+ *
+ * @param producerScope The coroutine scope to which the parser events are sent.
+ */
 private class XMLHandler(private val producerScope: ProducerScope<XMLParserEvent>) :
     DefaultHandler() {
     override fun error(e: SAXParseException?) {
@@ -72,6 +91,12 @@ private class XMLHandler(private val producerScope: ProducerScope<XMLParserEvent
     }
 }
 
+/**
+ * The main class that implements the abstract [XMLParser] for the Android platform.
+ * Its [parse] method accepts an XML string and returns a [Flow] of [XMLParserEvent]s.
+ * It sets up the SAX parser and an [InputSource] to read the XML string. The entire parsing process
+ * is executed within a coroutine, making it suitable for asynchronous operations.
+ */
 internal class AndroidXMLParser : XMLParser() {
     override fun parse(string: String): Flow<XMLParserEvent> {
 
