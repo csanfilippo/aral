@@ -20,3 +20,7 @@ plugins {
 
 rootProject.name = "aral"
 include(":aral")
+
+check(JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_21)) {
+    "This project needs to be run with Java 21 or higher (found: ${JavaVersion.current()})."
+}
