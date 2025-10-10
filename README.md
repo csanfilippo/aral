@@ -29,7 +29,7 @@
     ```kotlin
     commonMain {
         dependencies {
-            implementation("it.calogerosanfilippo:aral:0.2.0")
+            implementation("it.calogerosanfilippo:aral:<latest-version>")
         }
     }
     ```
