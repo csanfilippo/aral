@@ -110,4 +110,47 @@ class XMLParserTests  {
         }
     }
 
+    @Test
+    fun testCharacters() = runTest {
+
+        val parser = XMLParserFactory.getParser()
+
+        parser.parse("<tag>characters</tag>").test {
+            assertEquals(XMLParserEvent.DocumentStart, awaitItem())
+
+            when (val event = awaitItem()) {
+                is XMLParserEvent.ElementStartFound -> {
+                    assertEquals("tag", event.name)
+                }
+
+                else -> {
+                    fail("Unexpected event $event")
+                }
+            }
+
+            when (val event = awaitItem()) {
+                is XMLParserEvent.CharactersFound -> {
+                    assertEquals("characters", event.characters)
+                }
+
+                else -> {
+                    fail("Unexpected event $event")
+                }
+            }
+
+            when (val event = awaitItem()) {
+                is XMLParserEvent.ElementEndFound -> {
+                    assertEquals("tag", event.name)
+                }
+
+                else -> {
+                    fail("Unexpected event $event")
+                }
+            }
+
+            assertEquals(XMLParserEvent.DocumentEnd, awaitItem())
+            awaitComplete()
+        }
+    }
+
 }

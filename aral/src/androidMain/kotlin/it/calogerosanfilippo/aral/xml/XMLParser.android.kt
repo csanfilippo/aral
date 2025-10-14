@@ -39,6 +39,8 @@ internal actual fun internalGetParser(): XMLParser {
  */
 private class XMLHandler(private val producerScope: ProducerScope<XMLParserEvent>) :
     DefaultHandler() {
+    private var charactersBuffer: String? = null
+
     override fun error(e: SAXParseException?) {
         producerScope.launch {
             producerScope.send(XMLParserEvent.Error(e ?: Exception()))
@@ -66,15 +68,21 @@ private class XMLHandler(private val producerScope: ProducerScope<XMLParserEvent
 
     override fun endElement(uri: String, localName: String, qName: String) {
         producerScope.launch {
+
+            charactersBuffer?.let {
+                producerScope.send(XMLParserEvent.CharactersFound(it))
+            }
+
+            charactersBuffer = null
+
             producerScope.send(XMLParserEvent.ElementEndFound(qName))
         }
     }
 
     override fun characters(ch: CharArray, start: Int, length: Int) {
-        val foundString = String(ch, start, length)
-
         producerScope.launch {
-            producerScope.send(XMLParserEvent.CharactersFound(foundString))
+            val foundString = String(ch, start, length)
+            charactersBuffer = charactersBuffer?.plus(foundString) ?: foundString
         }
     }
 

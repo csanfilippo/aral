@@ -53,6 +53,8 @@ private class ParserDelegate(private val producerScope: ProducerScope<XMLParserE
     NSObject(),
     NSXMLParserDelegateProtocol {
 
+    private var charactersBuffer: String? = null
+
     override fun parser(parser: NSXMLParser, parseErrorOccurred: NSError) {
 
         val nSXMLParsingException = NSXMLParsingException(
@@ -82,8 +84,9 @@ private class ParserDelegate(private val producerScope: ProducerScope<XMLParserE
     }
 
     override fun parser(parser: NSXMLParser, foundCharacters: String) {
+
         producerScope.launch {
-            producerScope.send(XMLParserEvent.CharactersFound(foundCharacters))
+            charactersBuffer = charactersBuffer?.plus(foundCharacters) ?: foundCharacters
         }
     }
 
@@ -94,6 +97,12 @@ private class ParserDelegate(private val producerScope: ProducerScope<XMLParserE
         qualifiedName: String?
     ) {
         producerScope.launch {
+            charactersBuffer?.let {
+                producerScope.send(XMLParserEvent.CharactersFound(it))
+            }
+
+            charactersBuffer = null
+
             producerScope.send(XMLParserEvent.ElementEndFound(didEndElement))
         }
     }
