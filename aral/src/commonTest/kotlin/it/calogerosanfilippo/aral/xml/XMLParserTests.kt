@@ -5,7 +5,6 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.fail
 
 class XMLParserTests  {
 
@@ -15,14 +14,8 @@ class XMLParserTests  {
         val parser = XMLParserFactory.getParser()
 
         parser.parse("").test {
-            when (val event = awaitItem()) {
-                is XMLParserEvent.Error ->
-                    assertIs<EmptyDocumentException>(event.exception)
 
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertErrorEvent(awaitItem())
 
             awaitComplete()
         }
@@ -36,19 +29,9 @@ class XMLParserTests  {
         parser.parse("<tag></tag>").test {
             assertEquals(XMLParserEvent.DocumentStart, awaitItem())
 
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementStartFound -> assertEquals("tag", event.name)
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertElementStart(awaitItem(), "tag")
 
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementEndFound -> assertEquals("tag", event.name)
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertElementEnd(awaitItem(), "tag")
 
             assertEquals(XMLParserEvent.DocumentEnd, awaitItem())
             awaitComplete()
@@ -63,23 +46,9 @@ class XMLParserTests  {
         parser.parse("<tag attr1=\"val1\" attr2=\"val2\"></tag>").test {
             assertEquals(XMLParserEvent.DocumentStart, awaitItem())
 
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementStartFound -> {
-                    assertEquals("tag", event.name)
-                    assertEquals(mapOf("attr1" to "val1", "attr2" to "val2"), event.attributes)
-                }
+            assertElementStart(awaitItem(), "tag", mapOf("attr1" to "val1", "attr2" to "val2"))
 
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
-
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementEndFound -> assertEquals("tag", event.name)
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertElementEnd(awaitItem(), "tag")
 
             assertEquals(XMLParserEvent.DocumentEnd, awaitItem())
             awaitComplete()
@@ -94,16 +63,7 @@ class XMLParserTests  {
         parser.parse("<tag attr1=\"val1\" attr2=\"val2\"></tag").test {
             assertEquals(XMLParserEvent.DocumentStart, awaitItem())
 
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementStartFound -> {
-                    assertEquals("tag", event.name)
-                    assertEquals(mapOf("attr1" to "val1", "attr2" to "val2"), event.attributes)
-                }
-
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertElementStart(awaitItem(), "tag", mapOf("attr1" to "val1", "attr2" to "val2"))
 
             assertIs<XMLParserEvent.Error>(awaitItem())
             awaitComplete()
@@ -118,35 +78,11 @@ class XMLParserTests  {
         parser.parse("<tag>characters</tag>").test {
             assertEquals(XMLParserEvent.DocumentStart, awaitItem())
 
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementStartFound -> {
-                    assertEquals("tag", event.name)
-                }
+            assertElementStart(awaitItem(), "tag")
 
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertCharacterEvent(awaitItem(), "characters")
 
-            when (val event = awaitItem()) {
-                is XMLParserEvent.CharactersFound -> {
-                    assertEquals("characters", event.characters)
-                }
-
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
-
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementEndFound -> {
-                    assertEquals("tag", event.name)
-                }
-
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertElementEnd(awaitItem(), "tag")
 
             assertEquals(XMLParserEvent.DocumentEnd, awaitItem())
             awaitComplete()
@@ -161,78 +97,44 @@ class XMLParserTests  {
         parser.parse("<root>Some text here<child>Child text</child>Some more text</root>").test {
             assertEquals(XMLParserEvent.DocumentStart, awaitItem())
 
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementStartFound -> {
-                    assertEquals("root", event.name)
-                }
+            assertElementStart(awaitItem(), "root")
 
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertCharacterEvent(awaitItem(), "Some text here")
 
-            when (val event = awaitItem()) {
-                is XMLParserEvent.CharactersFound -> {
-                    assertEquals("Some text here", event.characters)
-                }
+            assertElementStart(awaitItem(), "child")
 
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertCharacterEvent(awaitItem(), "Child text")
 
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementStartFound -> {
-                    assertEquals("child", event.name)
-                }
+            assertElementEnd(awaitItem(), "child")
 
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertCharacterEvent(awaitItem(), "Some more text")
 
-            when (val event = awaitItem()) {
-                is XMLParserEvent.CharactersFound -> {
-                    assertEquals("Child text", event.characters)
-                }
-
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
-
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementEndFound -> {
-                    assertEquals("child", event.name)
-                }
-
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
-
-            when (val event = awaitItem()) {
-                is XMLParserEvent.CharactersFound -> {
-                    assertEquals("Some more text", event.characters)
-                }
-
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
-
-            when (val event = awaitItem()) {
-                is XMLParserEvent.ElementEndFound -> {
-                    assertEquals("root", event.name)
-                }
-
-                else -> {
-                    fail("Unexpected event $event")
-                }
-            }
+            assertElementEnd(awaitItem(), "root")
 
             assertEquals(XMLParserEvent.DocumentEnd, awaitItem())
+
             awaitComplete()
         }
     }
+}
+
+private fun assertElementStart(event: XMLParserEvent, name: String, attributes: Map<String, String> = emptyMap()) {
+    assertIs<XMLParserEvent.ElementStartFound>(event)
+    assertEquals(name, event.name)
+    assertEquals(attributes, event.attributes)
+}
+
+private fun assertElementEnd(event: XMLParserEvent, name: String) {
+    assertIs<XMLParserEvent.ElementEndFound>(event)
+    assertEquals(name, event.name)
+}
+
+
+private fun assertCharacterEvent(event: XMLParserEvent, characters: String) {
+    assertIs<XMLParserEvent.CharactersFound>(event)
+    assertEquals(characters, event.characters)
+}
+
+private fun assertErrorEvent(event: XMLParserEvent) {
+    assertIs<XMLParserEvent.Error>(event)
 }
