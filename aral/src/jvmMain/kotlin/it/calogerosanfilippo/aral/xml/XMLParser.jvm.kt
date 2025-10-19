@@ -1,12 +1,10 @@
+/**
+ * This file provides the JVM-specific implementation of the [XMLReader].
+ * It uses the standard Java `org.xml.sax` package, which provides a SAX-style (Simple API for XML)
+ * push parser. This is the underlying mechanism for parsing XML on the JVM platform.
+ */
 package it.calogerosanfilippo.aral.xml
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.ProducerScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import org.xml.sax.Attributes
 import org.xml.sax.InputSource
 import org.xml.sax.SAXParseException
@@ -14,19 +12,18 @@ import org.xml.sax.helpers.DefaultHandler
 import java.io.StringReader
 import javax.xml.parsers.SAXParserFactory
 
-internal actual fun internalGetParser(): XMLParser {
-    return JVMXMLParser()
-}
-
-private class XMLHandler(private val producerScope: ProducerScope<XMLParserEvent>) :
+/**
+ * A private `DefaultHandler` that acts as the SAX callback handler.
+ * It listens for events from the SAX parser and translates them into the common [XMLReaderCallback] events
+ * used by the multiplatform [XMLParser].
+ *
+ * @param callback The common callback to which parser events are forwarded.
+ */
+private class XMLHandler(private val callback: XMLReaderCallback) :
     DefaultHandler() {
 
-    private var charactersBuffer: String? = null
-
     override fun error(e: SAXParseException?) {
-        producerScope.launch {
-            producerScope.send(XMLParserEvent.Error(e ?: Exception()))
-        }
+        callback.onError(e ?: Exception())
     }
 
     override fun startElement(
@@ -43,69 +40,43 @@ private class XMLHandler(private val producerScope: ProducerScope<XMLParserEvent
             return@map Pair<String, String>(key, value)
         }.toMap()
 
-        producerScope.launch {
-            producerScope.send(XMLParserEvent.ElementStartFound(qName, attributesMap))
-        }
+        callback.onElementStart(qName, attributesMap)
     }
 
     override fun endElement(uri: String, localName: String, qName: String) {
-        producerScope.launch {
-
-            charactersBuffer?.let {
-                producerScope.send(XMLParserEvent.CharactersFound(it))
-            }
-
-            charactersBuffer = null
-
-            producerScope.send(XMLParserEvent.ElementEndFound(qName))
-        }
+        callback.onElementEnd(qName)
     }
 
     override fun characters(ch: CharArray, start: Int, length: Int) {
-        producerScope.launch {
-            val foundString = String(ch, start, length)
-            charactersBuffer = charactersBuffer?.plus(foundString) ?: foundString
-        }
+        callback.onCharacters(String(ch, start, length))
     }
 
     override fun endDocument() {
-        producerScope.launch {
-            producerScope.send(XMLParserEvent.DocumentEnd)
-        }
+        callback.onDocumentEnd()
     }
 
     override fun startDocument() {
-        producerScope.launch {
-            producerScope.send(XMLParserEvent.DocumentStart)
-        }
+        callback.onDocumentStart()
     }
 }
 
+/**
+ * The JVM-specific implementation of the [XMLReader] interface.
+ * It configures and runs a standard SAX parser.
+ */
+internal class JVMXMLReader: XMLReader {
+    override fun read(xmlString: String, callback: XMLReaderCallback) {
+        val factory = SAXParserFactory.newInstance()
+        val parser = factory.newSAXParser()
 
-internal class JVMXMLParser: XMLParser() {
-    override fun parse(string: String): Flow<XMLParserEvent> {
+        val inputSource = InputSource()
+        inputSource.encoding = "UTF-8"
+        inputSource.characterStream = StringReader(xmlString)
 
-        if (string.isBlank()) {
-            return flowOf(XMLParserEvent.Error(EmptyDocumentException()))
-        }
-
-        return channelFlow {
-            val factory = SAXParserFactory.newInstance()
-            val parser = factory.newSAXParser()
-
-            val inputSource = InputSource()
-            inputSource.encoding = "UTF-8"
-            inputSource.characterStream = StringReader(string)
-
-            try {
-                withContext(Dispatchers.IO) {
-                    parser.parse(inputSource, XMLHandler(this@channelFlow))
-                }
-            } catch (ex: Exception) {
-                launch {
-                    send(XMLParserEvent.Error(ex))
-                }
-            }
+        try {
+            parser.parse(inputSource, XMLHandler(callback))
+        } catch (ex: Exception) {
+            callback.onError(ex)
         }
     }
 }

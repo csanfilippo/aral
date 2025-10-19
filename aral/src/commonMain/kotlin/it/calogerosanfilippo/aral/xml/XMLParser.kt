@@ -1,6 +1,19 @@
+/**
+ * This file defines the core components for a multiplatform XML parsing library.
+ *
+ * It includes:
+ * - [XMLParserEvent]: A sealed class representing all possible events during parsing (e.g., element start, characters found).
+ * - [XMLParser]: The main entry point for parsing, which consumes an XML string and produces a Flow of [XMLParserEvent]s.
+ * - [XMLParserFactory]: A factory to get a platform-specific instance of the [XMLParser].
+ * - Internal interfaces ([XMLReader], [XMLReaderCallback]) to abstract the platform-specific SAX-style parser implementations.
+ */
 package it.calogerosanfilippo.aral.xml
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.withContext
 
 /**
  * Thrown when the XML document is empty.
@@ -55,7 +68,7 @@ public sealed class XMLParserEvent {
 /**
  * An XML parser.
  */
-public abstract class XMLParser {
+public class XMLParser internal constructor(private val xmlReader: XMLReader){
     /**
      * Parses the given XML string and returns a [Flow] of [XMLParserEvent]s.
      *
@@ -63,13 +76,64 @@ public abstract class XMLParser {
      * @return A [Flow] of [XMLParserEvent]s.
      * @throws EmptyDocumentException if the given string is empty.
      */
-    public abstract fun parse(string: String): Flow<XMLParserEvent>
-}
+    public fun parse(string: String): Flow<XMLParserEvent> {
+        return channelFlow {
+            val callback: XMLReaderCallback = object : XMLReaderCallback {
 
-/**
- * Gets an instance of [XMLParser].
- */
-internal expect fun internalGetParser(): XMLParser
+                private var charactersBuffer: String? = null
+
+                private fun flushCharacters() {
+                    charactersBuffer?.let {
+                        trySend(XMLParserEvent.CharactersFound(it))
+                        charactersBuffer = null
+                    }
+                }
+
+                override fun onDocumentStart() {
+                    trySend(XMLParserEvent.DocumentStart)
+                }
+
+                override fun onDocumentEnd() {
+                    trySend(XMLParserEvent.DocumentEnd)
+                    channel.close()
+                }
+
+                override fun onElementStart(
+                    name: String,
+                    attributes: Map<String, String>
+                ) {
+                    flushCharacters()
+                    trySend(XMLParserEvent.ElementStartFound(name, attributes))
+                }
+
+                override fun onElementEnd(name: String) {
+                    flushCharacters()
+                    trySend(XMLParserEvent.ElementEndFound(name))
+                }
+
+                override fun onCharacters(characters: String) {
+                    charactersBuffer = charactersBuffer?.plus(characters) ?: characters
+                }
+
+                override fun onError(exception: Exception) {
+                    trySend(XMLParserEvent.Error(exception))
+                    channel.close()
+                }
+            }
+
+            val cleanedString = string.trim()
+
+            if (cleanedString.isBlank()) {
+                send(XMLParserEvent.Error(EmptyDocumentException()))
+            } else {
+                // This is a blocking call, run it in a proper context
+                withContext(Dispatchers.IO) {
+                    xmlReader.read(cleanedString, callback)
+                }
+            }
+        }
+    }
+}
 
 /**
  * A factory for creating [XMLParser] instances.
@@ -78,5 +142,5 @@ public object XMLParserFactory {
     /**
      * Gets an instance of [XMLParser].
      */
-    public fun getParser(): XMLParser = internalGetParser()
+    public fun getParser(): XMLParser = XMLParser(XMLReaderFactory.createReader())
 }

@@ -1,14 +1,12 @@
+/**
+ * This file provides the Apple-specific (iOS, macOS, etc.) implementation of the [XMLReader].
+ * It uses the `NSXMLParser` from the Foundation framework, which is Apple's standard API for SAX-style
+ * XML parsing. It defines a delegate to handle parsing events and converts them to the common
+ * [XMLReaderCallback] events.
+ */
 package it.calogerosanfilippo.aral.xml
 
 import kotlinx.cinterop.BetaInteropApi
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
-import kotlinx.coroutines.channels.ProducerScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import platform.Foundation.NSData
 import platform.Foundation.NSError
 import platform.Foundation.NSString
@@ -20,7 +18,7 @@ import platform.Foundation.dataUsingEncoding
 import platform.darwin.NSObject
 
 /**
- * Exception thrown when an error occurs during XML parsing on Apple platforms.
+ * A custom exception to wrap parsing errors from [NSXMLParser].
  *
  * @property nsError The underlying [NSError] from the parser.
  * @property failureReason A string containing the localized description of the reason for the error.
@@ -34,7 +32,10 @@ internal data class NSXMLParsingException(
     override val message: String?,
 ) : Exception()
 
-
+/**
+ * Converts a raw `Map<Any?, *>` from `NSXMLParser` attributes into a `List<Pair<String, String>>`.
+ * It safely handles type checking to prevent runtime errors.
+ */
 private fun Map<Any?, *>.toListOfStringPairs(): List<Pair<String, String>> =
     map {
         return@map if (it.key is String && it.value is String) {
@@ -45,49 +46,36 @@ private fun Map<Any?, *>.toListOfStringPairs(): List<Pair<String, String>> =
     }.filterNotNull()
 
 /**
- * A delegate for [NSXMLParser] that converts parser events into [XMLParserEvent]s and sends them to a [ProducerScope].
+ * A private delegate class that implements [NSXMLParserDelegateProtocol].
+ * It receives events directly from the [NSXMLParser] and translates them into the common [XMLReaderCallback] events.
  *
- * @param producerScope The scope to which the parser events are sent.
+ * @param callback The common callback to which parser events are forwarded.
  */
-private class ParserDelegate(private val producerScope: ProducerScope<XMLParserEvent>) :
+private class ParserDelegate(private val callback: XMLReaderCallback) :
     NSObject(),
     NSXMLParserDelegateProtocol {
 
-    private var charactersBuffer: String? = null
-
     override fun parser(parser: NSXMLParser, parseErrorOccurred: NSError) {
-
         val nSXMLParsingException = NSXMLParsingException(
             nsError = parseErrorOccurred,
             message = parseErrorOccurred.localizedDescription,
             failureReason = parseErrorOccurred.localizedFailureReason,
             recoverySuggestion = parseErrorOccurred.localizedRecoverySuggestion,
         )
-
         parser.abortParsing()
-
-        producerScope.launch {
-            producerScope.send(XMLParserEvent.Error(nSXMLParsingException))
-        }
+        callback.onError(nSXMLParsingException)
     }
 
     override fun parserDidEndDocument(parser: NSXMLParser) {
-        producerScope.launch {
-            producerScope.send(XMLParserEvent.DocumentEnd)
-        }
+        callback.onDocumentEnd()
     }
 
     override fun parserDidStartDocument(parser: NSXMLParser) {
-        producerScope.launch {
-            producerScope.send(XMLParserEvent.DocumentStart)
-        }
+        callback.onDocumentStart()
     }
 
     override fun parser(parser: NSXMLParser, foundCharacters: String) {
-
-        producerScope.launch {
-            charactersBuffer = charactersBuffer?.plus(foundCharacters) ?: foundCharacters
-        }
+        callback.onCharacters(foundCharacters)
     }
 
     override fun parser(
@@ -96,15 +84,7 @@ private class ParserDelegate(private val producerScope: ProducerScope<XMLParserE
         namespaceURI: String?,
         qualifiedName: String?
     ) {
-        producerScope.launch {
-            charactersBuffer?.let {
-                producerScope.send(XMLParserEvent.CharactersFound(it))
-            }
-
-            charactersBuffer = null
-
-            producerScope.send(XMLParserEvent.ElementEndFound(didEndElement))
-        }
+        callback.onElementEnd(didEndElement)
     }
 
     override fun parser(
@@ -118,45 +98,22 @@ private class ParserDelegate(private val producerScope: ProducerScope<XMLParserE
             .toListOfStringPairs()
             .toMap()
 
-        producerScope.launch {
-            producerScope.send(
-                XMLParserEvent.ElementStartFound(
-                    didStartElement,
-                    parserEventAttributes
-                )
-            )
-        }
+        callback.onElementStart(didStartElement, parserEventAttributes)
     }
 }
 
 /**
- * An implementation of [XMLParser] for Apple platforms that uses [NSXMLParser].
+ * The Apple-specific implementation of the [XMLReader] interface.
+ * It configures and runs an `NSXMLParser`.
  */
-internal class IOSXMLParser : XMLParser() {
+internal class IOSXMLReader: XMLReader {
+
     @OptIn(BetaInteropApi::class)
-    override fun parse(string: String): Flow<XMLParserEvent> {
-        val cleanXml = string.trim()
-
-        if (cleanXml.isBlank()) {
-            return flowOf(XMLParserEvent.Error(EmptyDocumentException()))
-        }
-
-        val stringAsData = NSString.create(string = cleanXml).dataUsingEncoding(NSUTF8StringEncoding) ?: NSData()
-
-        return channelFlow {
-            withContext(Dispatchers.IO) {
-                val parser = NSXMLParser(stringAsData)
-                val delegate = ParserDelegate(this@channelFlow)
-                parser.delegate = delegate
-                parser.parse()
-            }
-        }
+    override fun read(xmlString: String, callback: XMLReaderCallback) {
+        val stringAsData = NSString.create(string = xmlString).dataUsingEncoding(NSUTF8StringEncoding) ?: NSData()
+        val parser = NSXMLParser(stringAsData)
+        val delegate = ParserDelegate(callback)
+        parser.delegate = delegate
+        parser.parse()
     }
-}
-
-/**
- * Returns an instance of [IOSXMLParser] for use on Apple platforms.
- */
-internal actual fun internalGetParser(): XMLParser {
-    return IOSXMLParser()
 }
