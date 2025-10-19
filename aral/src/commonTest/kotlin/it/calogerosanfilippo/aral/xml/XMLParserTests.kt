@@ -10,7 +10,7 @@ import kotlin.test.fail
 class XMLParserTests  {
 
     @Test
-    fun testEmptyString() = runTest {
+    fun `when the string to parse is empty the parser emits an error`() = runTest {
 
         val parser = XMLParserFactory.getParser()
 
@@ -29,7 +29,7 @@ class XMLParserTests  {
     }
 
     @Test
-    fun testSimpleXML() = runTest {
+    fun `when parsing a simple tag the parser emits start and end events`() = runTest {
 
         val parser = XMLParserFactory.getParser()
 
@@ -56,7 +56,7 @@ class XMLParserTests  {
     }
 
     @Test
-    fun testSimpleXMLWithAttributes() = runTest {
+    fun `when parsing a simple tag with attributes the parser emits the element start with all the attributes`() = runTest {
 
         val parser = XMLParserFactory.getParser()
 
@@ -87,7 +87,7 @@ class XMLParserTests  {
     }
 
     @Test
-    fun testNotValidXML() = runTest {
+    fun `when parsing a not valid XML the parser emits an error and completes`() = runTest {
 
         val parser = XMLParserFactory.getParser()
 
@@ -111,7 +111,7 @@ class XMLParserTests  {
     }
 
     @Test
-    fun testCharacters() = runTest {
+    fun `when parsing a tag with characters the parser emits the character event`() = runTest {
 
         val parser = XMLParserFactory.getParser()
 
@@ -154,7 +154,7 @@ class XMLParserTests  {
     }
 
     @Test
-    fun testCharactersInterleaved() = runTest {
+    fun `when parsing a tag with interleaved characters and elements the parser emits the correct events`() = runTest {
 
         val parser = XMLParserFactory.getParser()
 
@@ -235,5 +235,4 @@ class XMLParserTests  {
             awaitComplete()
         }
     }
-
 }
