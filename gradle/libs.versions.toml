@@ -6,7 +6,7 @@ android-compileSdk = "36"
 vanniktechMavenPublish = "0.34.0"
 kotlinx-coroutines = "1.10.2"
 turbine = "1.2.1"
-dokka = "2.0.0"
+dokka = "2.1.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
