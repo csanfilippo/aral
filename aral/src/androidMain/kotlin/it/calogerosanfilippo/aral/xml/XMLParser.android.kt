@@ -33,12 +33,9 @@ private class XMLHandler(private val callback: XMLReaderCallback) :
         attributes: Attributes
     ) {
 
-        val attributesMap = (0 until attributes.length).map {
-            val value = attributes.getValue(it)
-            val key = attributes.getLocalName(it)
-
-            return@map Pair<String, String>(key, value)
-        }.toMap()
+        val attributesMap = (0 until attributes.length).associate {
+            attributes.getLocalName(it) to attributes.getValue(it)
+        }
 
         callback.onElementStart(elementName, attributesMap)
     }

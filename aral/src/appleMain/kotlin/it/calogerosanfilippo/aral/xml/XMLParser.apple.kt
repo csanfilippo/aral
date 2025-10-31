@@ -4,9 +4,10 @@
  * XML parsing. It defines a delegate to handle parsing events and converts them to the common
  * [XMLReaderCallback] events.
  */
+@file:OptIn(kotlinx.cinterop.BetaInteropApi::class)
+
 package it.calogerosanfilippo.aral.xml
 
-import kotlinx.cinterop.BetaInteropApi
 import platform.Foundation.NSData
 import platform.Foundation.NSError
 import platform.Foundation.NSString
@@ -37,13 +38,13 @@ internal data class NSXMLParsingException(
  * It safely handles type checking to prevent runtime errors.
  */
 private fun Map<Any?, *>.toListOfStringPairs(): List<Pair<String, String>> =
-    map {
-        return@map if (it.key is String && it.value is String) {
-            it.key as String to it.value as String
+    mapNotNull { (key, value) ->
+        if (key is String && value is String) {
+            key to value
         } else {
             null
         }
-    }.filterNotNull()
+    }
 
 /**
  * A private delegate class that implements [NSXMLParserDelegateProtocol].
@@ -106,9 +107,8 @@ private class ParserDelegate(private val callback: XMLReaderCallback) :
  * The Apple-specific implementation of the [XMLReader] interface.
  * It configures and runs an `NSXMLParser`.
  */
-internal class IOSXMLReader: XMLReader {
+internal class IOSXMLReader : XMLReader {
 
-    @OptIn(BetaInteropApi::class)
     override fun read(xmlString: String, callback: XMLReaderCallback) {
         val stringAsData = NSString.create(string = xmlString).dataUsingEncoding(NSUTF8StringEncoding) ?: NSData()
         val parser = NSXMLParser(stringAsData)
