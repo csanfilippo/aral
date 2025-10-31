@@ -1,6 +1,6 @@
 # aral
 ![Maven Central](https://img.shields.io/maven-central/v/it.calogerosanfilippo/aral)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.2.20-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.2.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 **aral** is a lightweight, efficient Kotlin Multiplatform library for XML parsing. Built for the modern, multi-platform world, it offers a simple, flow-based API for parsing XML documents across Android, JVM, iOS, macOS, watchOS, and tvOS.
