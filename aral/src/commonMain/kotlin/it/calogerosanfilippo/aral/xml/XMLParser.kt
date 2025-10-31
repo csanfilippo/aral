@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 
 /**
@@ -71,12 +72,19 @@ public sealed class XMLParserEvent {
 public class XMLParser internal constructor(private val xmlReader: XMLReader){
     /**
      * Parses the given XML string and returns a [Flow] of [XMLParserEvent]s.
+     * If the string is blank, it returns a flow with a single [XMLParserEvent.Error] event containing an [EmptyDocumentException].
      *
      * @param string The XML string to parse.
      * @return A [Flow] of [XMLParserEvent]s.
-     * @throws EmptyDocumentException if the given string is empty.
      */
     public fun parse(string: String): Flow<XMLParserEvent> {
+
+        val trimmedString = string.trim()
+
+        if (trimmedString.isBlank()) {
+            return flowOf(XMLParserEvent.Error(EmptyDocumentException()))
+        }
+
         return channelFlow {
             val callback: XMLReaderCallback = object : XMLReaderCallback {
 
@@ -122,15 +130,8 @@ public class XMLParser internal constructor(private val xmlReader: XMLReader){
                 }
             }
 
-            val cleanedString = string.trim()
-
-            if (cleanedString.isBlank()) {
-                send(XMLParserEvent.Error(EmptyDocumentException()))
-            } else {
-                // This is a blocking call, run it in a proper context
-                withContext(Dispatchers.IO) {
-                    xmlReader.read(cleanedString, callback)
-                }
+            withContext(Dispatchers.IO) {
+                xmlReader.read(trimmedString, callback)
             }
         }
     }
