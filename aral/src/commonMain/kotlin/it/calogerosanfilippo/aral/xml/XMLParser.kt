@@ -80,12 +80,12 @@ public class XMLParser internal constructor(private val xmlReader: XMLReader){
         return channelFlow {
             val callback: XMLReaderCallback = object : XMLReaderCallback {
 
-                private var charactersBuffer: String? = null
+                private val charactersBuffer = StringBuilder()
 
                 private fun flushCharacters() {
-                    charactersBuffer?.let {
-                        trySend(XMLParserEvent.CharactersFound(it))
-                        charactersBuffer = null
+                    if (charactersBuffer.isNotEmpty()) {
+                        trySend(XMLParserEvent.CharactersFound(charactersBuffer.toString()))
+                        charactersBuffer.clear()
                     }
                 }
 
@@ -94,6 +94,7 @@ public class XMLParser internal constructor(private val xmlReader: XMLReader){
                 }
 
                 override fun onDocumentEnd() {
+                    flushCharacters()
                     trySend(XMLParserEvent.DocumentEnd)
                     channel.close()
                 }
@@ -112,7 +113,7 @@ public class XMLParser internal constructor(private val xmlReader: XMLReader){
                 }
 
                 override fun onCharacters(characters: String) {
-                    charactersBuffer = charactersBuffer?.plus(characters) ?: characters
+                    charactersBuffer.append(characters)
                 }
 
                 override fun onError(exception: Exception) {
