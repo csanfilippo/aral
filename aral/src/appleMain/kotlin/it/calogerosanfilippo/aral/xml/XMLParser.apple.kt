@@ -88,6 +88,14 @@ private class ParserDelegate(private val callback: XMLReaderCallback) :
         callback.onElementEnd(didEndElement)
     }
 
+    override fun parser(parser: NSXMLParser, foundCDATA: NSData) {
+        val string = NSString.create(foundCDATA, NSUTF8StringEncoding)
+
+        if (string != null) {
+            callback.onCharacters(string.toString())
+        }
+    }
+
     override fun parser(
         parser: NSXMLParser,
         didStartElement: String,

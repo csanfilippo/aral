@@ -6,7 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
-class XMLParserTests  {
+class XMLParserTests {
 
     @Test
     fun `when the string to parse is empty the parser emits an error`() = runTest {
@@ -110,6 +110,30 @@ class XMLParserTests  {
             assertCharacterEvent(awaitItem(), "Some more text")
 
             assertElementEnd(awaitItem(), "root")
+
+            assertEquals(XMLParserEvent.DocumentEnd, awaitItem())
+
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `when parsing a tag with a CDATA section the parser emits a CharactersFound event`() = runTest {
+        val parser = XMLParserFactory.getParser()
+
+        parser.parse("""
+            <note>This is text outside CDATA<message><![CDATA[This <b>will not</b> be parsed as XML]]></message></note>
+            """).test {
+            assertEquals(XMLParserEvent.DocumentStart, awaitItem())
+
+            assertElementStart(awaitItem(), "note")
+            assertCharacterEvent(awaitItem(), "This is text outside CDATA")
+
+            assertElementStart(awaitItem(), "message")
+            assertCharacterEvent(awaitItem(), "This <b>will not</b> be parsed as XML")
+
+            assertElementEnd(awaitItem(), "message")
+            assertElementEnd(awaitItem(), "note")
 
             assertEquals(XMLParserEvent.DocumentEnd, awaitItem())
 

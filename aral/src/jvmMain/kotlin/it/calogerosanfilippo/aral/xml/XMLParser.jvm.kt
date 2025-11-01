@@ -8,6 +8,7 @@ package it.calogerosanfilippo.aral.xml
 import org.xml.sax.Attributes
 import org.xml.sax.InputSource
 import org.xml.sax.SAXParseException
+import org.xml.sax.ext.LexicalHandler
 import org.xml.sax.helpers.DefaultHandler
 import java.io.StringReader
 import javax.xml.parsers.SAXParserFactory
@@ -20,7 +21,7 @@ import javax.xml.parsers.SAXParserFactory
  * @param callback The common callback to which parser events are forwarded.
  */
 private class XMLHandler(private val callback: XMLReaderCallback) :
-    DefaultHandler() {
+    DefaultHandler(), LexicalHandler {
 
     override fun error(e: SAXParseException?) {
         callback.onError(e ?: Exception())
@@ -55,6 +56,24 @@ private class XMLHandler(private val callback: XMLReaderCallback) :
     override fun startDocument() {
         callback.onDocumentStart()
     }
+
+    override fun comment(ch: CharArray?, start: Int, length: Int) { }
+
+    override fun endCDATA() { }
+
+    override fun endDTD() { }
+
+    override fun endEntity(name: String?) { }
+
+    override fun startCDATA() { }
+
+    override fun startDTD(
+        name: String?,
+        publicId: String?,
+        systemId: String?
+    ) { }
+
+    override fun startEntity(p0: String?) {}
 }
 
 /**
@@ -71,7 +90,9 @@ internal class JVMXMLReader: XMLReader {
         inputSource.characterStream = StringReader(xmlString)
 
         try {
-            parser.parse(inputSource, XMLHandler(callback))
+            val xmlHandler = XMLHandler(callback)
+            parser.setProperty("http://xml.org/sax/properties/lexical-handler", xmlHandler)
+            parser.parse(inputSource, xmlHandler)
         } catch (ex: Exception) {
             callback.onError(ex)
         }
