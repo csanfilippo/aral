@@ -1,4 +1,10 @@
-# aral
+<picture>
+  <source srcset="https://github.com/user-attachments/assets/dca97f4a-b7e2-4803-8251-2c1cc530ecfe" media="(prefers-color-scheme: dark)">
+  <source srcset="https://github.com/user-attachments/assets/a799bd80-689b-4b45-ac61-545d833b1d7a" media="(prefers-color-scheme: light)">
+  <img src="https://github.com/user-attachments/assets/934bac59-9111-4162-a8ad-86afd00481ef" alt="aral logo" style="width: 20%;">
+</picture>
+
+
 ![Maven Central](https://img.shields.io/maven-central/v/it.calogerosanfilippo/aral)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.2.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
