@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "it.calogerosanfilippo"
-version = "0.6.0"
+version = "0.7.0"
 
 kotlin {
 
@@ -24,10 +24,13 @@ kotlin {
         withHostTestBuilder {}.configure {}
 
         compilations.configureEach {
-            compilerOptions.configure {
-                jvmTarget.set(
-                    JvmTarget.JVM_21
-                )
+
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(
+                        JvmTarget.JVM_21
+                    )
+                }
             }
         }
     }
