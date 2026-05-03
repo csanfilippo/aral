@@ -26,7 +26,7 @@ import platform.darwin.NSObject
  * @property recoverySuggestion A string containing the localized description of how to recover from the error.
  * @property message The detailed error message.
  */
-internal data class NSXMLParsingException(
+internal class NSXMLParsingException(
     val nsError: NSError,
     val failureReason: String?,
     val recoverySuggestion: String?,
