@@ -7,8 +7,8 @@ package it.calogerosanfilippo.aral.xml
 internal interface XMLReaderCallback {
     fun onDocumentStart()
     fun onDocumentEnd()
-    fun onElementStart(name: String, attributes: Map<String, String>)
-    fun onElementEnd(name: String)
+    fun onElementStart(name: String, namespaceURI: String?, localName: String, attributes: Map<String, String>)
+    fun onElementEnd(name: String, namespaceURI: String?, localName: String)
     fun onCharacters(characters: String)
     fun onError(exception: Exception)
 }

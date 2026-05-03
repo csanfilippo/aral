@@ -38,18 +38,30 @@ public sealed class XMLParserEvent {
     /**
      * Indicates that an element has started.
      *
-     * @param name The name of the element.
-     * @param attributes A map of the element's attributes.
+     * @param name The qualified name of the element (e.g. `dc:title`). Equal to [localName] when there is no prefix.
+     * @param namespaceURI The namespace URI, or `null` if the element has no namespace.
+     * @param localName The local name of the element without any namespace prefix (e.g. `title`).
+     * @param attributes A map of the element's attributes keyed by local name.
      */
-    public data class ElementStartFound(val name: String, val attributes: Map<String, String>) :
-        XMLParserEvent()
+    public data class ElementStartFound(
+        val name: String,
+        val namespaceURI: String?,
+        val localName: String,
+        val attributes: Map<String, String>,
+    ) : XMLParserEvent()
 
     /**
      * Indicates that an element has ended.
      *
-     * @param name The name of the element.
+     * @param name The qualified name of the element (e.g. `dc:title`). Equal to [localName] when there is no prefix.
+     * @param namespaceURI The namespace URI, or `null` if the element has no namespace.
+     * @param localName The local name of the element without any namespace prefix (e.g. `title`).
      */
-    public data class ElementEndFound(val name: String) : XMLParserEvent()
+    public data class ElementEndFound(
+        val name: String,
+        val namespaceURI: String?,
+        val localName: String,
+    ) : XMLParserEvent()
 
     /**
      * Indicates that character data has been found.
@@ -111,15 +123,17 @@ public class XMLParser internal constructor(private val xmlReader: XMLReader){
 
                 override fun onElementStart(
                     name: String,
-                    attributes: Map<String, String>
+                    namespaceURI: String?,
+                    localName: String,
+                    attributes: Map<String, String>,
                 ) {
                     flushCharacters()
-                    trySend(XMLParserEvent.ElementStartFound(name, attributes))
+                    trySend(XMLParserEvent.ElementStartFound(name, namespaceURI, localName, attributes))
                 }
 
-                override fun onElementEnd(name: String) {
+                override fun onElementEnd(name: String, namespaceURI: String?, localName: String) {
                     flushCharacters()
-                    trySend(XMLParserEvent.ElementEndFound(name))
+                    trySend(XMLParserEvent.ElementEndFound(name, namespaceURI, localName))
                 }
 
                 override fun onCharacters(characters: String) {

@@ -47,7 +47,7 @@ class XMLParserTests {
         parser.parse("<tag attr1=\"val1\" attr2=\"val2\"></tag>").test {
             assertEquals(XMLParserEvent.DocumentStart, awaitItem())
 
-            assertElementStart(awaitItem(), "tag", mapOf("attr1" to "val1", "attr2" to "val2"))
+            assertElementStart(awaitItem(), "tag", attributes = mapOf("attr1" to "val1", "attr2" to "val2"))
 
             assertElementEnd(awaitItem(), "tag")
 
@@ -64,7 +64,7 @@ class XMLParserTests {
         parser.parse("<tag attr1=\"val1\" attr2=\"val2\"></tag").test {
             assertEquals(XMLParserEvent.DocumentStart, awaitItem())
 
-            assertElementStart(awaitItem(), "tag", mapOf("attr1" to "val1", "attr2" to "val2"))
+            assertElementStart(awaitItem(), "tag", attributes = mapOf("attr1" to "val1", "attr2" to "val2"))
 
             assertIs<XMLParserEvent.Error>(awaitItem())
             awaitComplete()
@@ -119,6 +119,42 @@ class XMLParserTests {
     }
 
     @Test
+    fun `when parsing a tag with a default namespace the parser emits the namespace URI`() = runTest {
+        val parser = XMLParserFactory.getParser()
+
+        parser.parse("""<feed xmlns="http://www.w3.org/2005/Atom"><title>Hello</title></feed>""").test {
+            assertEquals(XMLParserEvent.DocumentStart, awaitItem())
+
+            assertElementStart(awaitItem(), "feed", namespaceURI = "http://www.w3.org/2005/Atom", localName = "feed")
+            assertElementStart(awaitItem(), "title", namespaceURI = "http://www.w3.org/2005/Atom", localName = "title")
+            assertCharacterEvent(awaitItem(), "Hello")
+            assertElementEnd(awaitItem(), "title", namespaceURI = "http://www.w3.org/2005/Atom", localName = "title")
+            assertElementEnd(awaitItem(), "feed", namespaceURI = "http://www.w3.org/2005/Atom", localName = "feed")
+
+            assertEquals(XMLParserEvent.DocumentEnd, awaitItem())
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `when parsing a tag with a prefixed namespace the qualified name includes the prefix`() = runTest {
+        val parser = XMLParserFactory.getParser()
+
+        parser.parse("""<feed xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Hello</dc:title></feed>""").test {
+            assertEquals(XMLParserEvent.DocumentStart, awaitItem())
+
+            assertElementStart(awaitItem(), "feed", namespaceURI = null, localName = "feed")
+            assertElementStart(awaitItem(), "dc:title", namespaceURI = "http://purl.org/dc/elements/1.1/", localName = "title")
+            assertCharacterEvent(awaitItem(), "Hello")
+            assertElementEnd(awaitItem(), "dc:title", namespaceURI = "http://purl.org/dc/elements/1.1/", localName = "title")
+            assertElementEnd(awaitItem(), "feed", namespaceURI = null, localName = "feed")
+
+            assertEquals(XMLParserEvent.DocumentEnd, awaitItem())
+            awaitComplete()
+        }
+    }
+
+    @Test
     fun `when parsing a tag with a CDATA section the parser emits a CharactersFound event`() = runTest {
         val parser = XMLParserFactory.getParser()
 
@@ -143,15 +179,30 @@ class XMLParserTests {
     }
 }
 
-private fun assertElementStart(event: XMLParserEvent, name: String, attributes: Map<String, String> = emptyMap()) {
+private fun assertElementStart(
+    event: XMLParserEvent,
+    name: String,
+    namespaceURI: String? = null,
+    localName: String = name,
+    attributes: Map<String, String> = emptyMap(),
+) {
     assertIs<XMLParserEvent.ElementStartFound>(event)
     assertEquals(name, event.name)
+    assertEquals(namespaceURI, event.namespaceURI)
+    assertEquals(localName, event.localName)
     assertEquals(attributes, event.attributes)
 }
 
-private fun assertElementEnd(event: XMLParserEvent, name: String) {
+private fun assertElementEnd(
+    event: XMLParserEvent,
+    name: String,
+    namespaceURI: String? = null,
+    localName: String = name,
+) {
     assertIs<XMLParserEvent.ElementEndFound>(event)
     assertEquals(name, event.name)
+    assertEquals(namespaceURI, event.namespaceURI)
+    assertEquals(localName, event.localName)
 }
 
 

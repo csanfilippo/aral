@@ -21,14 +21,14 @@ private class XMLHandler(private val callback: XMLReaderCallback) :
         qName: String,
         attributes: Attributes
     ) {
-        val attributesMap = (0 until attributes.length).associate {
-            attributes.getLocalName(it) to attributes.getValue(it)
-        }
-        callback.onElementStart(qName, attributesMap)
+        val attributesMap = (0 until attributes.length)
+            .filter { i -> attributes.getQName(i).let { qn -> qn != "xmlns" && !qn.startsWith("xmlns:") } }
+            .associate { i -> attributes.getLocalName(i) to attributes.getValue(i) }
+        callback.onElementStart(qName.ifEmpty { localName }, uri.ifEmpty { null }, localName, attributesMap)
     }
 
     override fun endElement(uri: String, localName: String, qName: String) {
-        callback.onElementEnd(qName)
+        callback.onElementEnd(qName.ifEmpty { localName }, uri.ifEmpty { null }, localName)
     }
 
     override fun characters(ch: CharArray, start: Int, length: Int) {
@@ -65,6 +65,9 @@ internal class JavaXMLReader : XMLReader {
     }
 
     private companion object {
-        val factory: SAXParserFactory = SAXParserFactory.newInstance()
+        val factory: SAXParserFactory = SAXParserFactory.newInstance().also {
+            it.isNamespaceAware = true
+            it.setFeature("http://xml.org/sax/features/namespace-prefixes", true)
+        }
     }
 }

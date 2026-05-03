@@ -81,7 +81,11 @@ private class ParserDelegate(private val callback: XMLReaderCallback) :
         namespaceURI: String?,
         qualifiedName: String?
     ) {
-        callback.onElementEnd(didEndElement)
+        callback.onElementEnd(
+            qualifiedName?.takeIf { it.isNotEmpty() } ?: didEndElement,
+            namespaceURI?.takeIf { it.isNotEmpty() },
+            didEndElement,
+        )
     }
 
     override fun parser(parser: NSXMLParser, foundCDATA: NSData) {
@@ -99,7 +103,12 @@ private class ParserDelegate(private val callback: XMLReaderCallback) :
         qualifiedName: String?,
         attributes: Map<Any?, *>
     ) {
-        callback.onElementStart(didStartElement, attributes.toStringMap())
+        callback.onElementStart(
+            qualifiedName?.takeIf { it.isNotEmpty() } ?: didStartElement,
+            namespaceURI?.takeIf { it.isNotEmpty() },
+            didStartElement,
+            attributes.toStringMap(),
+        )
     }
 }
 
@@ -113,6 +122,7 @@ internal class AppleXMLReader : XMLReader {
         val stringAsData = NSString.create(string = xmlString).dataUsingEncoding(NSUTF8StringEncoding)
             ?: return callback.onError(Exception("Failed to encode XML string as UTF-8"))
         val parser = NSXMLParser(stringAsData)
+        parser.shouldProcessNamespaces = true
         val delegate = ParserDelegate(callback)
         parser.delegate = delegate
         parser.parse()
