@@ -115,7 +115,7 @@ private class ParserDelegate(private val callback: XMLReaderCallback) :
  * The Apple-specific implementation of the [XMLReader] interface.
  * It configures and runs an `NSXMLParser`.
  */
-internal class IOSXMLReader : XMLReader {
+internal class AppleXMLReader : XMLReader {
 
     override fun read(xmlString: String, callback: XMLReaderCallback) {
         val stringAsData = NSString.create(string = xmlString).dataUsingEncoding(NSUTF8StringEncoding) ?: NSData()
