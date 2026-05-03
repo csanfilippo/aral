@@ -145,5 +145,5 @@ public object XMLParserFactory {
     /**
      * Gets an instance of [XMLParser].
      */
-    public fun getParser(): XMLParser = XMLParser(XMLReaderFactory.createReader())
+    public fun getParser(): XMLParser = XMLParser(platformXmlReader())
 }
