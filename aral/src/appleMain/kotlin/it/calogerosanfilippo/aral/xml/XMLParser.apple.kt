@@ -110,7 +110,8 @@ private class ParserDelegate(private val callback: XMLReaderCallback) :
 internal class AppleXMLReader : XMLReader {
 
     override fun read(xmlString: String, callback: XMLReaderCallback) {
-        val stringAsData = NSString.create(string = xmlString).dataUsingEncoding(NSUTF8StringEncoding) ?: NSData()
+        val stringAsData = NSString.create(string = xmlString).dataUsingEncoding(NSUTF8StringEncoding)
+            ?: return callback.onError(Exception("Failed to encode XML string as UTF-8"))
         val parser = NSXMLParser(stringAsData)
         val delegate = ParserDelegate(callback)
         parser.delegate = delegate
