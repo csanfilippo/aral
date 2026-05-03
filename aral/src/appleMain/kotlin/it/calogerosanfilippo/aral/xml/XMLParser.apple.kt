@@ -34,17 +34,13 @@ internal class NSXMLParsingException(
 ) : Exception()
 
 /**
- * Converts a raw `Map<Any?, *>` from `NSXMLParser` attributes into a `List<Pair<String, String>>`.
- * It safely handles type checking to prevent runtime errors.
+ * Converts a raw `Map<Any?, *>` from `NSXMLParser` attributes into a `Map<String, String>`,
+ * filtering out any entries whose key or value is not a [String].
  */
-private fun Map<Any?, *>.toListOfStringPairs(): List<Pair<String, String>> =
+private fun Map<Any?, *>.toStringMap(): Map<String, String> =
     mapNotNull { (key, value) ->
-        if (key is String && value is String) {
-            key to value
-        } else {
-            null
-        }
-    }
+        if (key is String && value is String) key to value else null
+    }.toMap()
 
 /**
  * A private delegate class that implements [NSXMLParserDelegateProtocol].
@@ -103,11 +99,7 @@ private class ParserDelegate(private val callback: XMLReaderCallback) :
         qualifiedName: String?,
         attributes: Map<Any?, *>
     ) {
-        val parserEventAttributes = attributes
-            .toListOfStringPairs()
-            .toMap()
-
-        callback.onElementStart(didStartElement, parserEventAttributes)
+        callback.onElementStart(didStartElement, attributes.toStringMap())
     }
 }
 
