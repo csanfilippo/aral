@@ -50,6 +50,23 @@ kotlin {
 
     sourceSets {
 
+        val javaMain by creating {
+            dependsOn(commonMain.get())
+        }
+        jvmMain.get().dependsOn(javaMain)
+        androidMain.get().dependsOn(javaMain)
+
+        val appleMain by creating {
+            dependsOn(commonMain.get())
+        }
+        iosArm64Main.get().dependsOn(appleMain)
+        iosSimulatorArm64Main.get().dependsOn(appleMain)
+        macosArm64Main.get().dependsOn(appleMain)
+        tvosArm64Main.get().dependsOn(appleMain)
+        tvosSimulatorArm64Main.get().dependsOn(appleMain)
+        watchosDeviceArm64Main.get().dependsOn(appleMain)
+        watchosSimulatorArm64Main.get().dependsOn(appleMain)
+
         commonMain.dependencies {
             implementation(libs.kotlinx.coroutines)
         }
