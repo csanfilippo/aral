@@ -82,7 +82,10 @@ public class XMLParser internal constructor(private val xmlReader: XMLReader){
         val trimmedString = string.trim()
 
         if (trimmedString.isBlank()) {
-            return flowOf(XMLParserEvent.Error(EmptyDocumentException()))
+            return flowOf(
+                XMLParserEvent.DocumentStart,
+                XMLParserEvent.Error(EmptyDocumentException()),
+            )
         }
 
         return channelFlow {

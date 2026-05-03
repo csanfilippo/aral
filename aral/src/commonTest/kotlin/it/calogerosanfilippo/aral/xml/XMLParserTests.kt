@@ -15,6 +15,7 @@ class XMLParserTests {
 
         parser.parse("").test {
 
+            assertEquals(XMLParserEvent.DocumentStart, awaitItem())
             assertErrorEvent(awaitItem())
 
             awaitComplete()
