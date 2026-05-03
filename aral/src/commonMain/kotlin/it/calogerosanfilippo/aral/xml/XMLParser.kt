@@ -1,12 +1,3 @@
-/**
- * This file defines the core components for a multiplatform XML parsing library.
- *
- * It includes:
- * - [XMLParserEvent]: A sealed class representing all possible events during parsing (e.g., element start, characters found).
- * - [XMLParser]: The main entry point for parsing, which consumes an XML string and produces a Flow of [XMLParserEvent]s.
- * - [XMLParserFactory]: A factory to get a platform-specific instance of the [XMLParser].
- * - Internal interfaces ([XMLReader], [XMLReaderCallback]) to abstract the platform-specific SAX-style parser implementations.
- */
 package it.calogerosanfilippo.aral.xml
 
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +8,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 
 /**
- * Thrown when the XML document is empty.
+ * Thrown by [XMLParser.parse] when the input string is blank.
  */
 public class EmptyDocumentException : Exception()
 
@@ -41,7 +32,9 @@ public sealed class XMLParserEvent {
      * @param name The qualified name of the element (e.g. `dc:title`). Equal to [localName] when there is no prefix.
      * @param namespaceURI The namespace URI, or `null` if the element has no namespace.
      * @param localName The local name of the element without any namespace prefix (e.g. `title`).
-     * @param attributes A map of the element's attributes keyed by local name.
+     * @param attributes A map of the element's attributes keyed by local name. Note: if two attributes
+     * from different namespaces share the same local name, only one will be present in the map.
+     * Full per-attribute namespace info is a known limitation deferred to a future version.
      */
     public data class ElementStartFound(
         val name: String,
@@ -66,6 +59,9 @@ public sealed class XMLParserEvent {
     /**
      * Indicates that character data has been found.
      *
+     * Adjacent character callbacks from the underlying parser are coalesced, so a single
+     * contiguous run of text always produces exactly one [CharactersFound] event.
+     *
      * @param characters The character data.
      */
     public data class CharactersFound(val characters: String) : XMLParserEvent()
@@ -79,12 +75,17 @@ public sealed class XMLParserEvent {
 }
 
 /**
- * An XML parser.
+ * Parses XML strings into a [Flow] of [XMLParserEvent]s.
+ *
+ * Use [XMLParserFactory.getParser] to obtain an instance.
  */
 public class XMLParser internal constructor(private val xmlReader: XMLReader){
     /**
-     * Parses the given XML string and returns a [Flow] of [XMLParserEvent]s.
-     * If the string is blank, it returns a flow with a single [XMLParserEvent.Error] event containing an [EmptyDocumentException].
+     * Parses [string] and returns a cold [Flow] of [XMLParserEvent]s. Parsing starts only when
+     * the flow is collected and runs on [kotlinx.coroutines.Dispatchers.IO].
+     *
+     * If [string] is blank, the flow emits [XMLParserEvent.DocumentStart] followed by
+     * [XMLParserEvent.Error] wrapping an [EmptyDocumentException], then completes.
      *
      * @param string The XML string to parse.
      * @return A [Flow] of [XMLParserEvent]s.
@@ -153,11 +154,11 @@ public class XMLParser internal constructor(private val xmlReader: XMLReader){
 }
 
 /**
- * A factory for creating [XMLParser] instances.
+ * Factory for obtaining [XMLParser] instances.
  */
 public object XMLParserFactory {
     /**
-     * Gets an instance of [XMLParser].
+     * Returns a new [XMLParser] backed by the platform's native XML parser.
      */
     public fun getParser(): XMLParser = XMLParser(platformXmlReader())
 }

@@ -6,7 +6,7 @@
 
 
 ![Maven Central](https://img.shields.io/maven-central/v/it.calogerosanfilippo/aral)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.2.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.3.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 **aral** is a lightweight, efficient Kotlin Multiplatform library for XML parsing. Built for the modern, multi-platform world, it offers a simple, flow-based API for parsing XML documents across Android, JVM, iOS, macOS, watchOS, and tvOS.
@@ -15,6 +15,7 @@
 
 *   **Kotlin Multiplatform:** Write your parsing logic once and run it everywhere.
 *   **Flow-Based API:** A modern, asynchronous way to handle XML parsing events.
+*   **Namespace-aware:** Full support for XML namespaces — namespace URIs and local names are exposed on every element event.
 *   **Lightweight:** No heavy dependencies, keeping your app size down.
 *   **Easy to Use:** A simple and intuitive API that's easy to get started with.
 
@@ -87,8 +88,8 @@ The `XMLParserEvent` is a sealed class that represents all possible events durin
 sealed class XMLParserEvent {
     data object DocumentStart : XMLParserEvent()
     data object DocumentEnd : XMLParserEvent()
-    data class ElementStartFound(val name: String, val attributes: Map<String, String>) : XMLParserEvent()
-    data class ElementEndFound(val name: String) : XMLParserEvent()
+    data class ElementStartFound(val name: String, val namespaceURI: String?, val localName: String, val attributes: Map<String, String>) : XMLParserEvent()
+    data class ElementEndFound(val name: String, val namespaceURI: String?, val localName: String) : XMLParserEvent()
     data class CharactersFound(val characters: String) : XMLParserEvent()
     data class Error(val exception: Exception) : XMLParserEvent()
 }
@@ -106,7 +107,7 @@ sealed class XMLParserEvent {
 ## License
 
 ```
-Copyright 2024-2025 Calogero Sanfilippo
+Copyright 2024-2026 Calogero Sanfilippo
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

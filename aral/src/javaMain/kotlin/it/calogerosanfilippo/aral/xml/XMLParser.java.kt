@@ -67,6 +67,9 @@ internal class JavaXMLReader : XMLReader {
     private companion object {
         val factory: SAXParserFactory = SAXParserFactory.newInstance().also {
             it.isNamespaceAware = true
+            // namespace-prefixes ensures qName is populated alongside localName. The side effect
+            // is that xmlns/xmlns:* declarations are reported as regular attributes, so XMLHandler
+            // filters them out by qName.
             it.setFeature("http://xml.org/sax/features/namespace-prefixes", true)
         }
     }
