@@ -107,7 +107,6 @@ public class XMLParser internal constructor(private val xmlReader: XMLReader){
                 override fun onDocumentEnd() {
                     flushCharacters()
                     trySend(XMLParserEvent.DocumentEnd)
-                    channel.close()
                 }
 
                 override fun onElementStart(
@@ -129,7 +128,6 @@ public class XMLParser internal constructor(private val xmlReader: XMLReader){
 
                 override fun onError(exception: Exception) {
                     trySend(XMLParserEvent.Error(exception))
-                    channel.close()
                 }
             }
 
