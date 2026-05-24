@@ -7,6 +7,10 @@ plugins {
     alias(libs.plugins.dokka)
 }
 
+dependencies {
+    dokkaHtmlPlugin(libs.dokka.versioning)
+}
+
 group = "it.calogerosanfilippo"
 version = "1.0.0"
 
@@ -117,6 +121,18 @@ mavenPublishing {
             url = "https://github.com/csanfilippo/aral"
             connection = "scm:git:git://github.com/csanfilippo/aral.git"
             developerConnection = "scm:git:ssh://git@github.com/csanfilippo/aral.git"
+        }
+    }
+}
+
+dokka {
+    pluginsConfiguration {
+        versioning {
+            version = (project.findProperty("dokkaVersion") as? String)
+                ?: "${project.version.toString().substringBefore(".")}.x"
+            (project.findProperty("dokkaOlderVersionsDir") as? String)?.let {
+                olderVersionsDir = file(it)
+            }
         }
     }
 }
