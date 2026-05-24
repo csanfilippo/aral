@@ -1,0 +1,57 @@
+name: Publish docs
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  docs:
+    name: Generate and publish docs
+    runs-on: macos-latest
+    steps:
+      - name: Check out aral
+        uses: actions/checkout@v5
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 21
+
+      - name: Check out site repo
+        uses: actions/checkout@v5
+        with:
+          repository: csanfilippo/csanfilippo.github.io
+          path: site
+          token: ${{ secrets.SITE_REPO_TOKEN }}
+
+      - name: Extract major version
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          MAJOR=$(echo "$TAG" | cut -d. -f1)
+          echo "tag=$TAG"   >> "$GITHUB_OUTPUT"
+          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+
+      - name: Generate docs
+        run: |
+          ./gradlew :aral:dokkaGenerateHtml \
+            --no-configuration-cache \
+            -PdokkaVersion="${{ steps.version.outputs.major }}.x" \
+            -PdokkaOlderVersionsDir="${{ github.workspace }}/site/static/doc/aral"
+
+      - name: Copy docs to site
+        run: |
+          TARGET="site/static/doc/aral/${{ steps.version.outputs.major }}.x"
+          rm -rf "$TARGET"
+          mkdir -p "$TARGET"
+          cp -r aral/build/dokka/html/. "$TARGET/"
+
+      - name: Commit and push
+        run: |
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add static/doc/aral/
+          git diff --staged --quiet || git commit -m "docs: aral ${{ steps.version.outputs.tag }}"
+          git push
