@@ -25,24 +25,25 @@ jobs:
           path: site
           token: ${{ secrets.SITE_REPO_TOKEN }}
 
-      - name: Extract major version
+      - name: Extract version info
         id: version
         run: |
           TAG="${{ github.event.release.tag_name }}"
           MAJOR=$(echo "$TAG" | cut -d. -f1)
-          echo "tag=$TAG"   >> "$GITHUB_OUTPUT"
-          echo "major=$MAJOR" >> "$GITHUB_OUTPUT"
+          MINOR=$(echo "$TAG" | cut -d. -f2)
+          echo "tag=$TAG"             >> "$GITHUB_OUTPUT"
+          echo "doc_version=$MAJOR.$MINOR" >> "$GITHUB_OUTPUT"
 
       - name: Generate docs
         run: |
           ./gradlew :aral:dokkaGenerateHtml \
             --no-configuration-cache \
-            -PdokkaVersion="${{ steps.version.outputs.major }}.x" \
+            -PdokkaVersion="${{ steps.version.outputs.doc_version }}" \
             -PdokkaOlderVersionsDir="${{ github.workspace }}/site/static/doc/aral"
 
       - name: Copy docs to site
         run: |
-          TARGET="site/static/doc/aral/${{ steps.version.outputs.major }}.x"
+          TARGET="site/static/doc/aral/${{ steps.version.outputs.doc_version }}"
           rm -rf "$TARGET"
           mkdir -p "$TARGET"
           cp -r aral/build/dokka/html/. "$TARGET/"
@@ -53,5 +54,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add static/doc/aral/
-          git diff --staged --quiet || git commit -m "docs: aral ${{ steps.version.outputs.tag }}"
+          git diff --staged --quiet || git commit -m "docs: aral ${{ steps.version.outputs.tag }} (${{ steps.version.outputs.doc_version }})"
           git push

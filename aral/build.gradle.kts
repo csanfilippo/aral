@@ -129,7 +129,7 @@ dokka {
     pluginsConfiguration {
         versioning {
             version = (project.findProperty("dokkaVersion") as? String)
-                ?: "${project.version.toString().substringBefore(".")}.x"
+                ?: project.version.toString().split(".").take(2).joinToString(".")
             (project.findProperty("dokkaOlderVersionsDir") as? String)?.let {
                 olderVersionsDir = file(it)
             }
